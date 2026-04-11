@@ -24,3 +24,6 @@ clean:
 
 run:
 	PYTHONPATH=src python -m uno
+
+time:
+	sh -c "time PYTHONPATH=src python -m uno"
