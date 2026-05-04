@@ -1,0 +1,48 @@
+GameScreen {
+    layers: base;
+}
+
+#main-layout {
+    height: 1fr;
+}
+
+#players-panel {
+    width: 22;
+    border: solid white;
+    padding: 1;
+}
+
+#players-title {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#game-panel {
+    height: 1fr;
+    padding: 0 1;
+}
+
+#current-card {
+    height: 5;
+    content-align: center middle;
+    margin-bottom: 1;
+    text-style: bold;
+}
+
+#game-log {
+    height: 1fr;
+    border: solid grey;
+    margin-bottom: 1;
+}
+
+#hand-display {
+    height: auto;
+    min-height: 2;
+    border: solid grey;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+#card-input {
+    margin-bottom: 0;
+}

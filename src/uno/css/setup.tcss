@@ -1,0 +1,35 @@
+SetupScreen {
+    align: center middle;
+}
+
+#setup-container {
+    width: 64;
+    height: auto;
+    max-height: 90%;
+    border: solid white;
+    padding: 1 2;
+}
+
+#logo {
+    margin-bottom: 1;
+}
+
+.field-label {
+    color: grey;
+    margin-top: 1;
+}
+
+.hint {
+    color: darkgrey;
+    text-style: italic;
+}
+
+#player-names {
+    height: auto;
+    margin-top: 0;
+}
+
+#start-button {
+    margin-top: 1;
+    width: 100%;
+}
