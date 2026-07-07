@@ -1,6 +1,7 @@
 import sys
 import time
 import argparse
+import asyncio
 import traceback
 
 from uno.game import *
@@ -26,6 +27,12 @@ def main():
     argparser.add_argument('-C', '--cheats', action='store_true', help="enable cheat codes (see README)")
     argparser.add_argument('-D', '--debug', action='store_true', help="enable debugging messages")
     argparser.add_argument('-V', '--version', action='store_true', help="print the version and exit")
+    argparser.add_argument('--serve', action='store_true', help="host an internet/LAN multiplayer server")
+    argparser.add_argument('--host', default='127.0.0.1', help="host interface for --serve")
+    argparser.add_argument('--port', type=int, default=8765, help="port for --serve")
+    argparser.add_argument('--connect', help="connect to a multiplayer server, for example ws://127.0.0.1:8765")
+    argparser.add_argument('--name', help="player name for multiplayer")
+    argparser.add_argument('--room', default='default', help="multiplayer room name")
 
     arguments: argparse.Namespace = argparser.parse_args()
     cheats: bool = arguments.cheats
@@ -45,6 +52,26 @@ def main():
     if cheats:
         console.print("[yellow]WARNING: [/yellow][white]Cheat codes are enabled.[/white]")
     logging.debug("Debug messages are enabled.")
+
+    if arguments.serve:
+        from uno.server import serve
+        asyncio.run(serve(arguments.host, arguments.port))
+        return
+
+    if arguments.connect:
+        from uno.client import connect
+        name = arguments.name or input("Player name: ")
+        while True:
+            try:
+                starting_cards = int(input("Starting cards for /start: "))
+                if starting_cards > 1:
+                    break
+                print_error("The number can't be lower than 2.")
+            except ValueError:
+                print_error("Enter a valid number.")
+        card_stacking = input("Similar card stacking for /start (Y/n): ").lower() in ('y', '')
+        asyncio.run(connect(arguments.connect, name, arguments.room, starting_cards, card_stacking))
+        return
 
     players: list[Player] = []
     while True:
