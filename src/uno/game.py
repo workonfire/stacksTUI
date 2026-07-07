@@ -129,7 +129,7 @@ class Table:
 
         if card.playable(self.last_played_card):
             if card not in player.hand:
-                raise CardNotInPossessionError(f"The player {player} does not have {card} card.")
+                raise CardNotInPossessionError(f"The player {player.name} does not have {card} card.")
             self.stack.insert(0, card)
             player.hand.remove(card)
 
@@ -167,7 +167,7 @@ class Table:
                 else:
                     self.set_next_turn()
         else:
-            raise CardNotPlayableError(f"The player {player} cannot play with {card}.")
+            raise CardNotPlayableError(f"The player {player.name} cannot play with {card}.")
         return event
 
     def deal_card(self, player: Player, amount: int = 1):

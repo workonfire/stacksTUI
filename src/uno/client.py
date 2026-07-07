@@ -34,6 +34,7 @@ class NetworkClient:
         self.name = name.lower()
         self.room = room
         self.latest_state: dict[str, Any] | None = None
+        self.latest_lobby: dict[str, Any] | None = None
         self.in_lobby = True
         self.active = True
 
@@ -140,7 +141,8 @@ class NetworkClient:
             except KeyError:
                 console.print("[bright_red]Incorrect color. Example: GREEN[/bright_red]")
 
-    async def _read_line(self, prompt: str) -> str:
+    @staticmethod
+    async def _read_line(prompt: str) -> str:
         console.print(prompt, end='')
         loop = asyncio.get_running_loop()
         future = loop.create_future()
@@ -165,7 +167,11 @@ class NetworkClient:
         message_type = message.get('type')
         if message_type == 'lobby':
             self.in_lobby = True
-            self._print_lobby(message)
+            if self.latest_lobby is None:
+                self._print_lobby(message)
+            else:
+                self._print_lobby_players(message)
+            self.latest_lobby = message
         elif message_type == 'state':
             self.in_lobby = False
             self.latest_state = message['state']
@@ -184,7 +190,8 @@ class NetworkClient:
         elif message_type == 'event':
             self._print_event(message['event'])
 
-    def _print_lobby(self, message: dict[str, Any]) -> None:
+    @staticmethod
+    def _print_lobby(message: dict[str, Any]) -> None:
         players = ', '.join(player['name'] for player in message['players'])
         rules = message.get('rules') or {}
         console.print(f"\nRoom: [bold]{message['room']}[/bold]")
@@ -194,9 +201,14 @@ class NetworkClient:
             card_stacking = rules.get('card_stacking', True)
             console.print(
                 f"Rules: {starting_cards} starting cards, "
-                f"card stacking {'on' if card_stacking else 'off'}"
+                f"card stacking {'[green]on[/green]' if card_stacking else '[red]off[/red]'}"
             )
         console.print("Type [bright_blue]/start[/bright_blue] to begin.")
+
+    @staticmethod
+    def _print_lobby_players(message: dict[str, Any]) -> None:
+        players = ', '.join(player['name'] for player in message['players'])
+        console.print(f"Players: {players or '(none)'}")
 
     def _print_state(self, state: dict[str, Any]) -> None:
         console.print("\n- Turn: [", end='')
@@ -225,8 +237,10 @@ class NetworkClient:
             console.print(f"[green]Winner: {state['winner']}[/green]")
         elif state.get('your_turn'):
             console.print("Your turn. Enter a card, blank to draw, or /pass.")
+            console.print("> ", end='')
 
-    def _print_winner(self, winner: str) -> None:
+    @staticmethod
+    def _print_winner(winner: str) -> None:
         console.print(f"[green]Winner: {winner}[/green]")
 
     def _print_event(self, event: dict[str, Any]) -> None:
