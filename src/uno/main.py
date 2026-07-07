@@ -8,7 +8,7 @@ from uno.game import *
 from rich.console import Console
 from time import sleep
 
-__VERSION__: str = 'ALPHA-2025-06-02'
+__VERSION__: str = 'ALPHA-2026-07-07'
 
 console = Console(color_system='standard')
 
@@ -30,6 +30,8 @@ def main():
     argparser.add_argument('--serve', action='store_true', help="host an internet/LAN multiplayer server")
     argparser.add_argument('--host', default='127.0.0.1', help="host interface for --serve")
     argparser.add_argument('--port', type=int, default=8765, help="port for --serve")
+    argparser.add_argument('--starting-cards', type=int, default=7, help="starting cards for --serve")
+    argparser.add_argument('--disable-card-stacking', action='store_true', help="disable card stacking for --serve")
     argparser.add_argument('--connect', help="connect to a multiplayer server, for example ws://127.0.0.1:8765")
     argparser.add_argument('--name', help="player name for multiplayer")
     argparser.add_argument('--room', default='default', help="multiplayer room name")
@@ -55,22 +57,23 @@ def main():
 
     if arguments.serve:
         from uno.server import serve
-        asyncio.run(serve(arguments.host, arguments.port))
+        if arguments.starting_cards <= 1:
+            print_error("Starting cards can't be lower than 2.")
+            raise SystemExit(2)
+        asyncio.run(serve(
+            arguments.host,
+            arguments.port,
+            {
+                'starting_cards': arguments.starting_cards,
+                'card_stacking': not arguments.disable_card_stacking,
+            },
+        ))
         return
 
     if arguments.connect:
         from uno.client import connect
         name = arguments.name or input("Player name: ")
-        while True:
-            try:
-                starting_cards = int(input("Starting cards for /start: "))
-                if starting_cards > 1:
-                    break
-                print_error("The number can't be lower than 2.")
-            except ValueError:
-                print_error("Enter a valid number.")
-        card_stacking = input("Similar card stacking for /start (Y/n): ").lower() in ('y', '')
-        asyncio.run(connect(arguments.connect, name, arguments.room, starting_cards, card_stacking))
+        asyncio.run(connect(arguments.connect, name, arguments.room))
         return
 
     players: list[Player] = []

@@ -57,11 +57,12 @@ def game_view_for_player(game: Game, player: Player) -> dict[str, Any]:
     }
 
 
-def lobby_view(room_name: str, players: list[Player]) -> dict[str, Any]:
+def lobby_view(room_name: str, players: list[Player], rules: dict[str, Any] | None = None) -> dict[str, Any]:
     return {
         'type': 'lobby',
         'room': room_name,
         'players': [player_public_view(player) for player in players],
+        'rules': rules or {},
     }
 
 

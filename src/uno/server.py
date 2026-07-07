@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 import json
 import logging
 from dataclasses import dataclass, field
@@ -27,8 +28,10 @@ DEFAULT_RULES: dict[str, Any] = {
 @dataclass
 class Room:
     name: str
+    rules: dict[str, Any]
     players: dict[str, Player] = field(default_factory=dict)
     connections: dict[str, Any] = field(default_factory=dict)
+    announced_departures: set[str] = field(default_factory=set)
     game: Game | None = None
 
     @property
@@ -45,20 +48,26 @@ class Room:
         self.connections[name] = websocket
         return player
 
-    def remove_connection(self, websocket: Any) -> None:
+    def remove_connection(self, websocket: Any) -> list[Player]:
         disconnected = [
             name for name, connection in self.connections.items()
             if connection == websocket
         ]
+        removed_players = []
         for name in disconnected:
             del self.connections[name]
-            if not self.started:
-                del self.players[name]
+            player = self.players.pop(name, None)
+            if player is not None:
+                removed_players.append(player)
+        return removed_players
 
 
 class UnoServer:
-    def __init__(self) -> None:
+    def __init__(self, rules: dict[str, Any] | None = None) -> None:
         self.rooms: dict[str, Room] = {}
+        self.rules = DEFAULT_RULES.copy()
+        self.rules.update(rules or {})
+        self.rules['cheats'] = False
 
     async def handler(self, websocket: Any) -> None:
         room: Room | None = None
@@ -75,8 +84,9 @@ class UnoServer:
                 await self._send(websocket, error_message("Player name is required."))
                 return
 
-            room = self.rooms.setdefault(room_name, Room(room_name))
+            room = self.rooms.setdefault(room_name, Room(room_name, self.rules.copy()))
             player = room.add_player(player_name, websocket)
+            logging.info("%s joined room %s", player.name, room.name)
             await self._broadcast_room(room, info_message(f"{player.name} joined {room.name}."))
             await self._broadcast_room_state(room)
 
@@ -89,9 +99,13 @@ class UnoServer:
             await self._send(websocket, error_message("Internal server error."))
         finally:
             if room is not None:
-                room.remove_connection(websocket)
+                removed_players = room.remove_connection(websocket)
+                if removed_players:
+                    for removed_player in removed_players:
+                        await self._announce_player_left(room, removed_player)
+                    await self._remove_players_from_game(room, removed_players)
                 await self._broadcast_room_state(room)
-                if not room.connections and not room.started:
+                if not room.connections:
                     self.rooms.pop(room.name, None)
 
     async def _handle_message(self, room: Room, player: Player, raw_message: str) -> None:
@@ -103,17 +117,20 @@ class UnoServer:
 
         action = message.get('action')
         if action == 'start':
-            await self._start_game(room, message)
+            await self._start_game(room)
         elif action == 'play':
             await self._play_card(room, player, message)
         elif action == 'draw':
             await self._draw_card(room, player)
         elif action == 'pass':
             await self._pass_turn(room, player)
+        elif action == 'leave':
+            await self._announce_player_left(room, player)
+            await room.connections[player.name].close()
         else:
             await self._send(room.connections[player.name], error_message(f"Unknown action: {action}"))
 
-    async def _start_game(self, room: Room, message: dict[str, Any]) -> None:
+    async def _start_game(self, room: Room) -> None:
         if room.started:
             await self._broadcast_room(room, error_message("Game has already started."))
             return
@@ -121,10 +138,7 @@ class UnoServer:
             await self._broadcast_room(room, error_message("At least two players are required."))
             return
 
-        rules = DEFAULT_RULES.copy()
-        rules.update(message.get('rules') or {})
-        rules['cheats'] = False
-        room.game = Game(list(room.players.values()), rules)
+        room.game = Game(list(room.players.values()), room.rules.copy())
         await self._broadcast_room(room, info_message("Game started."))
         await self._broadcast_room_state(room)
 
@@ -202,11 +216,38 @@ class UnoServer:
 
     async def _broadcast_room_state(self, room: Room) -> None:
         if room.game is None:
-            await self._broadcast_room(room, lobby_view(room.name, list(room.players.values())))
+            await self._broadcast_room(room, lobby_view(room.name, list(room.players.values()), room.rules))
             return
         for player_name, websocket in list(room.connections.items()):
             player = room.players[player_name]
             await self._send(websocket, state_message(room.game, player))
+
+    async def _remove_players_from_game(self, room: Room, players: list[Player]) -> None:
+        if room.game is None:
+            return
+
+        for player in players:
+            if player not in room.game.players:
+                continue
+            removed_index = room.game.players.index(player)
+            room.game.players.remove(player)
+            if room.game.players:
+                if removed_index < room.game.turn_index:
+                    room.game.turn_index -= 1
+                room.game.turn_index %= len(room.game.players)
+            else:
+                room.game.turn_index = 0
+
+        if room.game.active and len(room.game.players) < 2:
+            room.game.end()
+            await self._broadcast_room(room, info_message("Game ended because fewer than two players remain."))
+
+    async def _announce_player_left(self, room: Room, player: Player) -> None:
+        if player.name in room.announced_departures:
+            return
+        room.announced_departures.add(player.name)
+        logging.info("%s left room %s", player.name, room.name)
+        await self._broadcast_room(room, info_message(f"{player.name} left {room.name}."))
 
     async def _broadcast_room(self, room: Room, message: dict[str, Any]) -> None:
         await asyncio.gather(
@@ -221,18 +262,34 @@ class UnoServer:
         return json.loads(await websocket.recv())
 
 
-async def serve(host: str = '127.0.0.1', port: int = 8765) -> None:
+async def serve(host: str = '127.0.0.1', port: int = 8765, rules: dict[str, Any] | None = None) -> None:
     try:
         import websockets
     except ImportError as error:
         raise RuntimeError("Install the 'websockets' package to run the UNO server.") from error
 
-    server = UnoServer()
+    server = UnoServer(rules)
     async with websockets.serve(server.handler, host, port):
         logging.info("UNO server listening on ws://%s:%s", host, port)
         await asyncio.Future()
 
 
 def main() -> None:
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('--host', default='127.0.0.1')
+    argparser.add_argument('--port', type=int, default=8765)
+    argparser.add_argument('--starting-cards', type=int, default=DEFAULT_RULES['starting_cards'])
+    argparser.add_argument('--disable-card-stacking', action='store_true')
+    arguments = argparser.parse_args()
+    if arguments.starting_cards <= 1:
+        raise SystemExit("Starting cards can't be lower than 2.")
+
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    asyncio.run(serve())
+    asyncio.run(serve(
+        arguments.host,
+        arguments.port,
+        {
+            'starting_cards': arguments.starting_cards,
+            'card_stacking': not arguments.disable_card_stacking,
+        },
+    ))
