@@ -1,0 +1,75 @@
+#setup-outer {
+    width: 100%;
+    height: 1fr;
+    align: center top;
+}
+
+#setup-layout {
+    width: 64;
+    height: 1fr;
+    padding-top: 1;
+}
+
+#logo {
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#setup-title {
+    text-align: center;
+    color: darkgrey;
+    text-style: italic;
+    margin-bottom: 1;
+}
+
+#settings-row {
+    height: auto;
+    margin-bottom: 1;
+}
+
+.field-group {
+    width: 1fr;
+    height: auto;
+    margin-right: 2;
+}
+
+.option-label {
+    color: grey;
+    margin-bottom: 0;
+}
+
+SetupScreen OptionList,
+MultiplayerSetupScreen OptionList {
+    border: none;
+    height: auto;
+    padding: 0;
+}
+
+#player-names {
+    height: auto;
+    margin-top: 0;
+}
+
+#player-names Input {
+    width: 1fr;
+    margin-right: 1;
+}
+
+SetupScreen Input,
+MultiplayerSetupScreen Input {
+    border: none;
+    padding: 0 1;
+    height: 1;
+}
+
+SetupScreen Input:focus,
+MultiplayerSetupScreen Input:focus {
+    border: none;
+    background: #2a2a2a;
+}
+
+#start-list,
+#connect-list {
+    margin-top: 1;
+    margin-bottom: 1;
+}

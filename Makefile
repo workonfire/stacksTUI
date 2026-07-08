@@ -1,4 +1,4 @@
-NAME = uno
+NAME = stacksTUI
 VERSION = 1.0.0a1
 ARCHIVE = $(NAME)-$(VERSION).tar.gz
 PREFIX = $(NAME)-$(VERSION)
@@ -23,7 +23,7 @@ clean:
 	@echo "🧹 Cleaned up build artifacts"
 
 run:
-	PYTHONPATH=src python -m uno
+	PYTHONPATH=src python -m stacksTUI
 
 time:
-	sh -c "time PYTHONPATH=src python -m uno"
+	sh -c "time PYTHONPATH=src python -m stacksTUI"

@@ -1,15 +1,15 @@
 # Maintainer: workonfire <kolucki62@gmail.com>
 
-pkgname=uno
+pkgname=stacksTUI
 pkgver=1.0.0a1
 pkgrel=1
-pkgdesc="A simple CLI implementation of the UNO card game in Python"
+pkgdesc="Textual interface for the stackslib card game engine"
 arch=('any')
-url="https://github.com/workonfire/UNO"
+url="https://github.com/workonfire/stacksTUI"
 license=('GPL')
-depends=('python' 'python-rich')
+depends=('python' 'python-stackslib' 'python-rich' 'python-textual' 'python-websockets')
 makedepends=('python-build' 'python-installer' 'python-wheel' 'python-hatchling')
-source=("uno-${pkgver}.tar.gz")
+source=("stacksTUI-${pkgver}.tar.gz")
 sha256sums=('SKIP')
 
 build() {
