@@ -3,7 +3,7 @@ import asyncio
 import logging
 import sys
 
-from uno._version import __VERSION__
+from stacksTUI._version import __VERSION__
 
 try:
     from textual.app import App
@@ -13,8 +13,8 @@ except ModuleNotFoundError as error:
     TEXTUAL_IMPORT_ERROR = error
 
 
-class UNOApp(App):
-    TITLE = "UNO"
+class StacksTUIApp(App):
+    TITLE = "stacksTUI"
     ALLOWED_THEMES = ("ansi-dark", "ansi-light")
 
     def __init__(
@@ -36,12 +36,12 @@ class UNOApp(App):
 
     def on_mount(self) -> None:
         if self.connect_uri is not None and self.player_name is not None:
-            from uno.screens.multiplayer import MultiplayerGameScreen
+            from stacksTUI.screens.multiplayer import MultiplayerGameScreen
 
             self.push_screen(MultiplayerGameScreen(self.connect_uri, self.player_name, self.room))
             return
 
-        from uno.screens.menu import MainMenuScreen
+        from stacksTUI.screens.menu import MainMenuScreen
 
         self.push_screen(MainMenuScreen())
 
@@ -62,7 +62,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.version:
-        print(f"UNO | version {__VERSION__}")
+        print(f"stacksTUI | version {__VERSION__}")
         raise SystemExit
 
     logging.basicConfig(
@@ -72,7 +72,7 @@ def main() -> None:
     )
 
     if args.serve:
-        from uno.server import serve
+        from stackslib.server import serve
 
         if args.starting_cards <= 1:
             raise SystemExit("Starting cards can't be lower than 2.")
@@ -90,9 +90,9 @@ def main() -> None:
         raise SystemExit("--name is required with --connect")
 
     if TEXTUAL_IMPORT_ERROR is not None:
-        raise SystemExit("Install the 'textual' package to run the UNO TUI.") from TEXTUAL_IMPORT_ERROR
+        raise SystemExit("Install the 'textual' package to run stacksTUI.") from TEXTUAL_IMPORT_ERROR
 
-    UNOApp(
+    StacksTUIApp(
         cheats=args.cheats,
         connect_uri=args.connect,
         player_name=args.name,

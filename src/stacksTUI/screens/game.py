@@ -10,11 +10,11 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Label, RichLog, Static
 
-from uno.enums import CardColor, CardType, GameEventType
-from uno.exceptions import CardNotInPossessionError, CardNotPlayableError
-from uno.game import Card, Game, GameEvent, Turn
-from uno.protocol import card_from_dict, game_view_for_player
-from uno.screens.rendering import hand_text
+from stackslib.enums import CardColor, CardType, GameEventType
+from stackslib.exceptions import CardNotInPossessionError, CardNotPlayableError
+from stackslib.game import Card, Game, GameEvent, Turn
+from stackslib.protocol import card_from_dict, game_view_for_player
+from stacksTUI.screens.rendering import hand_text
 
 
 class GameScreen(Screen):

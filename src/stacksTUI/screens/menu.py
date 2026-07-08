@@ -4,7 +4,7 @@ from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Label, OptionList, Static
 
-from uno._version import __VERSION__, _LOGO
+from stacksTUI._version import __VERSION__, _LOGO
 
 
 class MainMenuScreen(Screen):
@@ -26,9 +26,9 @@ class MainMenuScreen(Screen):
         yield Footer()
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
-        from uno.screens.about import AboutScreen
-        from uno.screens.multiplayer import MultiplayerSetupScreen
-        from uno.screens.setup import SetupScreen
+        from stacksTUI.screens.about import AboutScreen
+        from stacksTUI.screens.multiplayer import MultiplayerSetupScreen
+        from stacksTUI.screens.setup import SetupScreen
 
         match event.option_index:
             case 0:

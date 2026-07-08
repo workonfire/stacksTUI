@@ -11,11 +11,11 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Label, OptionList, RichLog, Static
 
-from uno._version import _LOGO
-from uno.enums import CardColor
-from uno.game import Card
-from uno.protocol import card_from_dict, card_to_dict
-from uno.screens.rendering import hand_text
+from stacksTUI._version import _LOGO
+from stackslib.enums import CardColor
+from stackslib.game import Card
+from stackslib.protocol import card_from_dict, card_to_dict
+from stacksTUI.screens.rendering import hand_text
 
 
 class MultiplayerSetupScreen(Screen):

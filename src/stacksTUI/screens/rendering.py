@@ -1,7 +1,7 @@
 from rich.text import Text
 
-from uno.game import Card
-from uno.protocol import card_from_dict
+from stackslib.game import Card
+from stackslib.protocol import card_from_dict
 
 
 def card_text(card: Card) -> Text:

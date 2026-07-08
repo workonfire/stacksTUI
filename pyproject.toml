@@ -1,13 +1,14 @@
 [project]
-name = "uno"
+name = "stacksTUI"
 version = "1.0.0a1"
-description = "CLI implementation of the UNO card game in Python"
+description = "Textual interface for the stackslib card game engine"
 authors = [
     { name = "workonfire", email = "kolucki62@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "stackslib @ git+https://github.com/workonfire/stackslib.git",
     "rich>=13.0.0",
     "textual>=0.47.0",
     "websockets>=12.0"
@@ -17,6 +18,10 @@ dependencies = [
 requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/stacksTUI",
+]
+
 [project.scripts]
-uno = "uno.main:main"
-uno-server = "uno.server:main"
+stacksTUI = "stacksTUI.main:main"

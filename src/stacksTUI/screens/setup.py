@@ -4,8 +4,8 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Label, OptionList, Static
 
-from uno._version import _LOGO
-from uno.game import Game, Player
+from stacksTUI._version import _LOGO
+from stackslib.game import Game, Player
 
 
 class SetupScreen(Screen):
@@ -121,6 +121,6 @@ class SetupScreen(Screen):
             'cheats': self.app.cheats,
             'card_stacking': self._card_stacking,
         }
-        from uno.screens.game import GameScreen
+        from stacksTUI.screens.game import GameScreen
 
         self.app.push_screen(GameScreen(Game(players, rules)))
