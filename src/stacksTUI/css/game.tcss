@@ -45,8 +45,19 @@ LobbyScreen {
     margin-bottom: 1;
 }
 
-#card-input {
+#input-row {
+    height: auto;
     margin-bottom: 0;
+}
+
+#card-input {
+    width: 1fr;
+}
+
+#waiting-indicator {
+    width: 10;
+    height: 3;
+    margin-right: 1;
 }
 
 #lobby-layout {

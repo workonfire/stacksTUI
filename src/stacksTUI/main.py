@@ -1,6 +1,5 @@
 import argparse
 import logging
-import sys
 
 from stacksTUI._version import __VERSION__
 
@@ -19,6 +18,7 @@ class StacksTUIApp(App):
     def __init__(
         self,
         cheats: bool = False,
+        debug: bool = False,
         connect_uri: str | None = None,
         player_name: str | None = None,
         room: str = "main",
@@ -29,6 +29,7 @@ class StacksTUIApp(App):
                 self.unregister_theme(theme_name)
         self.theme = "ansi-dark"
         self.cheats = cheats
+        self.debug_logging = debug
         self.connect_uri = connect_uri
         self.player_name = player_name
         self.room = room
@@ -60,9 +61,9 @@ def main() -> None:
         raise SystemExit
 
     logging.basicConfig(
-        stream=sys.stdout,
+        handlers=[logging.NullHandler()],
         level=logging.DEBUG if args.debug else logging.INFO,
-        format='%(levelname)s: %(message)s',
+        force=True,
     )
 
     if args.connect and not args.name:
@@ -73,6 +74,7 @@ def main() -> None:
 
     StacksTUIApp(
         cheats=args.cheats,
+        debug=args.debug,
         connect_uri=args.connect,
         player_name=args.name,
         room=args.room,

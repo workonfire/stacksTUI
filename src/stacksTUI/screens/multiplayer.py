@@ -11,7 +11,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input, Label, OptionList, RichLog, Static
+from textual.widgets import Footer, Header, Input, Label, LoadingIndicator, OptionList, RichLog, Static
 
 from stacksTUI._version import _LOGO
 from stackslib.enums import CardColor
@@ -113,16 +113,20 @@ class MultiplayerGameScreen(Screen):
                 yield Static("", id="current-card", markup=True)
                 yield RichLog(id="game-log", highlight=True, markup=True, auto_scroll=True)
                 yield Static("", id="hand-display", markup=True)
-                yield Input(
-                    placeholder="/start in lobby, card or blank on your turn",
-                    id="card-input",
-                    disabled=True,
-                )
+                with Horizontal(id="input-row"):
+                    yield LoadingIndicator(id="waiting-indicator")
+                    yield Input(
+                        placeholder="/start in lobby, card or blank on your turn",
+                        id="card-input",
+                        disabled=True,
+                    )
         yield Footer()
 
     def on_mount(self) -> None:
+        self._set_waiting(False)
         self.sub_title = f"{self.player_name}@{self.room} | {_server_label(self.uri)}"
         self._log(f"Connecting to {self.uri}...")
+        self._log_debug("debug logging enabled")
         self.run_network_client()
 
     async def action_disconnect(self) -> None:
@@ -186,12 +190,14 @@ class MultiplayerGameScreen(Screen):
         try:
             async with websockets.connect(self.uri) as websocket:
                 self.websocket = websocket
+                self._log_debug("websocket connected")
                 await self._send({
                     'action': 'join',
                     'name': self.player_name,
                     'room': self.room,
                 })
                 self.query_one("#card-input", Input).disabled = False
+                self._set_waiting(True)
                 async for raw_message in websocket:
                     await self._handle_message(raw_message)
                     if not self.active:
@@ -210,6 +216,8 @@ class MultiplayerGameScreen(Screen):
         finally:
             self.active = False
             self.websocket = None
+            self._log_debug("network client stopped")
+            self._set_waiting(False)
             with contextlib.suppress(Exception):
                 self.query_one("#card-input", Input).disabled = True
 
@@ -257,6 +265,7 @@ class MultiplayerGameScreen(Screen):
         card = self.pending_wild_card
         self.pending_wild_card = None
         self.query_one("#card-input", Input).placeholder = "Waiting..."
+        self._set_waiting(True)
         await self._send({
             'action': 'play',
             'card': card_to_dict(card),
@@ -277,6 +286,7 @@ class MultiplayerGameScreen(Screen):
             self.app.pop_screen()
 
     async def _handle_message(self, raw_message: str) -> None:
+        self._log_debug(f"recv {raw_message}")
         try:
             message = json.loads(raw_message)
         except json.JSONDecodeError:
@@ -309,6 +319,7 @@ class MultiplayerGameScreen(Screen):
             "\n".join(f"  {player['name']}" for player in players) or "[dim]No players[/dim]"
         )
         rules = lobby.get('rules') or {}
+        self._set_waiting(False)
         self.query_one("#current-card", Static).styles.border = ("double", "white")
         self.query_one("#current-card", Static).update(f"Room: {lobby['room']}")
         self.query_one("#hand-display", Static).update(
@@ -332,9 +343,11 @@ class MultiplayerGameScreen(Screen):
         current_card.styles.border = ("double", color_name)
         current_card.update(Text.from_markup(f"[bright_{color_name}]  {card!r}  [/bright_{color_name}]"))
 
+        is_terminal = state.get('winner') is not None or not state.get('active', True)
         prompt = "Your turn: card, blank to draw, PASS to skip" if state['your_turn'] else "Waiting..."
-        if state.get('winner') is not None or not state.get('active', True):
+        if is_terminal:
             prompt = "/start"
+        self._set_waiting(not state['your_turn'] and not is_terminal)
         self.query_one("#hand-display", Static).update(hand_text(state['you']['hand']))
         self.query_one("#card-input", Input).placeholder = prompt
         if state.get('winner') is not None:
@@ -364,7 +377,9 @@ class MultiplayerGameScreen(Screen):
         if self.websocket is None:
             return
         try:
-            await self.websocket.send(json.dumps(message))
+            raw_message = json.dumps(message)
+            self._log_debug(f"send {raw_message}")
+            await self.websocket.send(raw_message)
         except Exception as error:
             if error.__class__.__name__.startswith("ConnectionClosed") or isinstance(error, OSError):
                 await self._handle_disconnected("Disconnected from server.")
@@ -373,6 +388,16 @@ class MultiplayerGameScreen(Screen):
 
     def _log(self, message: str) -> None:
         self.query_one("#game-log", RichLog).write(message)
+
+    def _set_waiting(self, waiting: bool) -> None:
+        try:
+            self.query_one("#waiting-indicator", LoadingIndicator).display = waiting
+        except Exception:
+            pass
+
+    def _log_debug(self, message: str) -> None:
+        if getattr(self.app, "debug_logging", False):
+            self._log(f"[dim]DEBUG: {escape(message)}[/dim]")
 
     def _log_chat(self, player: str, message: str) -> None:
         self._log(f"[cyan]{escape(player)}[/cyan]: {escape(message)}")

@@ -8,7 +8,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input, Label, RichLog, Static
+from textual.widgets import Footer, Header, Input, Label, LoadingIndicator, RichLog, Static
 
 from stackslib.enums import CardColor, CardType, GameEventType
 from stackslib.exceptions import CardNotInPossessionError, CardNotPlayableError
@@ -40,14 +40,17 @@ class GameScreen(Screen):
                 yield Static("", id="current-card", markup=True)
                 yield RichLog(id="game-log", highlight=True, markup=True, auto_scroll=True)
                 yield Static("", id="hand-display", markup=True)
-                yield Input(
-                    placeholder="Card (Enter to draw, PASS to skip)",
-                    id="card-input",
-                    disabled=True,
-                )
+                with Horizontal(id="input-row"):
+                    yield LoadingIndicator(id="waiting-indicator")
+                    yield Input(
+                        placeholder="Card (Enter to draw, PASS to skip)",
+                        id="card-input",
+                        disabled=True,
+                    )
         yield Footer()
 
     def on_mount(self) -> None:
+        self._set_waiting(False)
         self._refresh_ui()
         self.run_game_loop()
 
@@ -92,7 +95,14 @@ class GameScreen(Screen):
     def _log(self, message: str) -> None:
         self.query_one("#game-log", RichLog).write(message)
 
+    def _set_waiting(self, waiting: bool) -> None:
+        try:
+            self.query_one("#waiting-indicator", LoadingIndicator).display = waiting
+        except Exception:
+            pass
+
     async def _await_input(self, prompt: str = "Card (Enter to draw, PASS to skip)") -> str:
+        self._set_waiting(False)
         input_widget = self.query_one("#card-input", Input)
         input_widget.placeholder = prompt
         input_widget.disabled = False
@@ -107,6 +117,7 @@ class GameScreen(Screen):
         self._submitted_input = event.value
         event.input.clear()
         event.input.disabled = True
+        self._set_waiting(True)
         self._input_event.set()
 
     @work(exclusive=True)
@@ -128,15 +139,19 @@ class GameScreen(Screen):
                 await self._run_human_turn()
 
     async def _run_computer_turn(self) -> None:
-        await asyncio.sleep(0.8)
-        if not self.game.active:
-            return
-        player_name = self.game.turn.name
-        card = Turn(self.game).get_result()
-        event = self.game.play(card, self.game.turn)
-        self._log(f"[dim]{player_name} played:[/dim] {card}")
-        await self._handle_event(event)
-        await asyncio.sleep(0.2)
+        self._set_waiting(True)
+        try:
+            await asyncio.sleep(0.8)
+            if not self.game.active:
+                return
+            player_name = self.game.turn.name
+            card = Turn(self.game).get_result()
+            event = self.game.play(card, self.game.turn)
+            self._log(f"[dim]{player_name} played:[/dim] {card}")
+            await self._handle_event(event)
+            await asyncio.sleep(0.2)
+        finally:
+            self._set_waiting(False)
 
     async def _run_human_turn(self) -> None:
         raw = await self._await_input()
