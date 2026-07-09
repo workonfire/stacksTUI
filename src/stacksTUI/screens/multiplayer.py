@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import json
 from typing import Any
+from urllib.parse import urlparse
 
 from rich.markup import escape
 from rich.text import Text
@@ -17,6 +18,17 @@ from stackslib.enums import CardColor
 from stackslib.game import Card
 from stackslib.protocol import card_from_dict, card_to_dict
 from stacksTUI.screens.rendering import hand_text
+
+
+def _server_label(uri: str) -> str:
+    parsed = urlparse(uri)
+    host = parsed.hostname
+    if host is None:
+        return uri
+    port = parsed.port
+    if port is None:
+        port = 443 if parsed.scheme == "wss" else 80
+    return f"{host}:{port}"
 
 
 class MultiplayerSetupScreen(Screen):
@@ -109,7 +121,7 @@ class MultiplayerGameScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        self.sub_title = f"{self.player_name}@{self.room}"
+        self.sub_title = f"{self.player_name}@{self.room} | {_server_label(self.uri)}"
         self._log(f"Connecting to {self.uri}...")
         self.run_network_client()
 
