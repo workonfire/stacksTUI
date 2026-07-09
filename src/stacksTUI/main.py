@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import logging
 import sys
 
@@ -51,11 +50,6 @@ def main() -> None:
     parser.add_argument('-C', '--cheats', action='store_true', help="enable cheat codes")
     parser.add_argument('-D', '--debug', action='store_true', help="enable debug logging")
     parser.add_argument('-V', '--version', action='store_true', help="print version and exit")
-    parser.add_argument('--serve', action='store_true', help="host an internet/LAN multiplayer server")
-    parser.add_argument('--host', default='127.0.0.1', help="host interface for --serve")
-    parser.add_argument('--port', type=int, default=8765, help="port for --serve")
-    parser.add_argument('--starting-cards', type=int, default=7, help="starting cards for --serve")
-    parser.add_argument('--disable-card-stacking', action='store_true', help="disable card stacking for --serve")
     parser.add_argument('--connect', help="connect to a multiplayer server, for example ws://127.0.0.1:8765")
     parser.add_argument('--name', help="player name for multiplayer")
     parser.add_argument('--room', default='main', help="multiplayer room name")
@@ -70,21 +64,6 @@ def main() -> None:
         level=logging.DEBUG if args.debug else logging.INFO,
         format='%(levelname)s: %(message)s',
     )
-
-    if args.serve:
-        from stackslib.server import serve
-
-        if args.starting_cards <= 1:
-            raise SystemExit("Starting cards can't be lower than 2.")
-        asyncio.run(serve(
-            args.host,
-            args.port,
-            {
-                'starting_cards': args.starting_cards,
-                'card_stacking': not args.disable_card_stacking,
-            },
-        ))
-        return
 
     if args.connect and not args.name:
         raise SystemExit("--name is required with --connect")

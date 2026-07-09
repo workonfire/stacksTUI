@@ -189,5 +189,5 @@ class GameScreen(Screen):
                         self._log("[red]Invalid color. Enter RED, GREEN, BLUE, or YELLOW.[/red]")
             case GameEventType.STACKING_ACTIVE:
                 for stacked_card in event.payload['stacked_cards']:
-                    self._log(f"[dim]Stacked: {stacked_card}[/dim]")
+                    self._log(f"[dim]{event['payload'].get('player')} stacked: {stacked_card}[/dim]")
                     await asyncio.sleep(0.1)

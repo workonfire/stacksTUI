@@ -339,7 +339,7 @@ class MultiplayerGameScreen(Screen):
     def _render_event(self, event: dict[str, Any]) -> None:
         if event['type'] == 'STACKING_ACTIVE':
             for card in event['payload'].get('stacked_cards', []):
-                self._log(f"[dim]Stacked: {card_from_dict(card)}[/dim]")
+                self._log(f"[dim]{event['payload'].get('player')} stacked: {card_from_dict(card)}[/dim]")
         elif event['type'] == 'COLOR_CHANGED':
             self._log(
                 f"{event['payload'].get('player')} changed color to "
