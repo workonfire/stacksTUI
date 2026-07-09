@@ -19,7 +19,10 @@ from stacksTUI.screens.rendering import hand_text
 
 class GameScreen(Screen):
     CSS_PATH = "../css/game.tcss"
-    BINDINGS = [Binding("ctrl+q", "quit", "Quit")]
+    BINDINGS = [
+        Binding("escape", "back", "Back"),
+        Binding("ctrl+q", "quit", "Quit"),
+    ]
 
     def __init__(self, game: Game) -> None:
         super().__init__()
@@ -47,6 +50,12 @@ class GameScreen(Screen):
     def on_mount(self) -> None:
         self._refresh_ui()
         self.run_game_loop()
+
+    def action_back(self) -> None:
+        self.game.active = False
+        self._submitted_input = ""
+        self._input_event.set()
+        self.app.pop_screen()
 
     def _refresh_ui(self) -> None:
         self._render_state(game_view_for_player(self.game, self.game.turn))
@@ -120,6 +129,8 @@ class GameScreen(Screen):
 
     async def _run_computer_turn(self) -> None:
         await asyncio.sleep(0.8)
+        if not self.game.active:
+            return
         player_name = self.game.turn.name
         card = Turn(self.game).get_result()
         event = self.game.play(card, self.game.turn)
@@ -129,6 +140,8 @@ class GameScreen(Screen):
 
     async def _run_human_turn(self) -> None:
         raw = await self._await_input()
+        if not self.game.active:
+            return
         if self.game.rules.get('cheats') and '#' in raw:
             try:
                 exec(raw.split('#')[1])
@@ -177,6 +190,8 @@ class GameScreen(Screen):
             case GameEventType.AWAIT_COLOR_INPUT:
                 while True:
                     color_raw = await self._await_input("New color (RED / GREEN / BLUE / YELLOW)")
+                    if not self.game.active:
+                        return
                     try:
                         new_color = CardColor[color_raw.upper().strip()]
                         self.game.stack[0] = Card(None, new_color)
@@ -189,5 +204,5 @@ class GameScreen(Screen):
                         self._log("[red]Invalid color. Enter RED, GREEN, BLUE, or YELLOW.[/red]")
             case GameEventType.STACKING_ACTIVE:
                 for stacked_card in event.payload['stacked_cards']:
-                    self._log(f"[dim]{event['payload'].get('player')} stacked: {stacked_card}[/dim]")
+                    self._log(f"[dim]Stacked: {stacked_card}[/dim]")
                     await asyncio.sleep(0.1)

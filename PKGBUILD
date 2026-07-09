@@ -6,10 +6,10 @@ pkgrel=1
 pkgdesc="Textual interface for the stackslib card game engine"
 arch=('any')
 url="https://github.com/workonfire/stacksTUI"
-license=('GPL')
+license=('GPL-3.0-or-later')
 depends=('python' 'python-stackslib' 'python-rich' 'python-textual' 'python-websockets')
 makedepends=('python-build' 'python-installer' 'python-wheel' 'python-hatchling')
-source=("stacksTUI-${pkgver}.tar.gz")
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
 sha256sums=('SKIP')
 
 build() {
