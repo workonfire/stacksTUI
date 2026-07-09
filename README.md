@@ -8,16 +8,17 @@ A Textual interface for the UNO ([stackslib](https://github.com/workonfire/stack
 
 ## Installation
 
-Clone the repository, create a virtual environment, and install the project in editable mode:
+Clone the repository and install the project in editable mode:
 
 ```bash
 git clone https://github.com/workonfire/stacksTUI.git
 cd stacksTUI
-python -m venv .venv
-source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
+
+More installation instructions coming soon.
+
 ## Running
 
 After installation, run the app with:
