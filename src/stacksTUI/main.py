@@ -22,7 +22,7 @@ class StacksTUIApp(App):
         cheats: bool = False,
         connect_uri: str | None = None,
         player_name: str | None = None,
-        room: str = "default",
+        room: str = "main",
     ) -> None:
         super().__init__()
         for theme_name in list(self.available_themes):
@@ -58,7 +58,7 @@ def main() -> None:
     parser.add_argument('--disable-card-stacking', action='store_true', help="disable card stacking for --serve")
     parser.add_argument('--connect', help="connect to a multiplayer server, for example ws://127.0.0.1:8765")
     parser.add_argument('--name', help="player name for multiplayer")
-    parser.add_argument('--room', default='default', help="multiplayer room name")
+    parser.add_argument('--room', default='main', help="multiplayer room name")
     args = parser.parse_args()
 
     if args.version:

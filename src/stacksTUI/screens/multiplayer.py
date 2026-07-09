@@ -37,7 +37,7 @@ class MultiplayerSetupScreen(Screen):
                         yield Input(placeholder="player", id="player-name")
                     with Vertical(classes="field-group"):
                         yield Label("room", classes="option-label")
-                        yield Input(value="default", id="room-name")
+                        yield Input(value="main", id="room-name")
                 yield OptionList("connect", id="connect-list")
         yield Footer()
 
@@ -60,7 +60,7 @@ class MultiplayerSetupScreen(Screen):
     def _connect(self) -> None:
         uri = self.query_one("#server-uri", Input).value.strip()
         name = self.query_one("#player-name", Input).value.strip().lower()
-        room = self.query_one("#room-name", Input).value.strip() or "default"
+        room = self.query_one("#room-name", Input).value.strip() or "main"
         if not uri:
             self.notify("Server is required.", severity="error")
             return
@@ -87,6 +87,7 @@ class MultiplayerGameScreen(Screen):
         self.latest_state: dict[str, Any] | None = None
         self.latest_lobby: dict[str, Any] | None = None
         self.pending_wild_card: Card | None = None
+        self.latest_terminal_message: str | None = None
         self.active = True
 
     def compose(self) -> ComposeResult:
@@ -135,6 +136,18 @@ class MultiplayerGameScreen(Screen):
                 await self._send({'action': 'start'})
             else:
                 self.notify("Type /start when everyone has joined.", severity="warning")
+            return
+        if (
+            self.latest_state is not None
+            and (
+                self.latest_state.get('winner') is not None
+                or not self.latest_state.get('active', True)
+            )
+        ):
+            if text in ("", "start", "/start"):
+                await self._send({'action': 'start'})
+            else:
+                self.notify("Type /start to play again.", severity="warning")
             return
         await self._send_turn_action(text)
 
@@ -236,7 +249,7 @@ class MultiplayerGameScreen(Screen):
             input_widget = self.query_one("#card-input", Input)
             input_widget.placeholder = "Disconnected"
             input_widget.disabled = True
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(5)
         with contextlib.suppress(Exception):
             self.app.pop_screen()
 
@@ -293,14 +306,22 @@ class MultiplayerGameScreen(Screen):
         current_card.update(Text.from_markup(f"[bright_{color_name}]  {card!r}  [/bright_{color_name}]"))
 
         prompt = "Your turn: card, blank to draw, PASS to skip" if state['your_turn'] else "Waiting..."
+        if state.get('winner') is not None or not state.get('active', True):
+            prompt = "/start"
         self.query_one("#hand-display", Static).update(hand_text(state['you']['hand']))
         self.query_one("#card-input", Input).placeholder = prompt
         if state.get('winner') is not None:
-            self._log(f"[green]Winner: {state['winner']}[/green]")
-            self.active = False
+            message = f"Winner: {state['winner']}"
+            if self.latest_terminal_message != message:
+                self._log(f"[green]{message}[/green]")
+                self.latest_terminal_message = message
         elif not state.get('active', True):
-            self._log("[yellow]Game ended.[/yellow]")
-            self.active = False
+            message = "Game ended."
+            if self.latest_terminal_message != message:
+                self._log(f"[yellow]{message}[/yellow]")
+                self.latest_terminal_message = message
+        else:
+            self.latest_terminal_message = None
 
     def _render_event(self, event: dict[str, Any]) -> None:
         if event['type'] == 'STACKING_ACTIVE':

@@ -1,4 +1,4 @@
-__VERSION__: str = 'ALPHA-2026-07-08'
+__VERSION__: str = 'ALPHA-2026-07-09'
 
 _LOGO = (
     "[red]88   88[/red][green] 88b 88[/green][blue]  dP\"Yb  [/blue]\n"
