@@ -3,6 +3,7 @@ import contextlib
 import json
 from typing import Any
 
+from rich.markup import escape
 from rich.text import Text
 from textual import work
 from textual.app import ComposeResult
@@ -135,7 +136,10 @@ class MultiplayerGameScreen(Screen):
             if text in ("", "start", "/start"):
                 await self._send({'action': 'start'})
             else:
-                self.notify("Type /start when everyone has joined.", severity="warning")
+                await self._send_chat(text)
+            return
+        if text.startswith("/chat"):
+            await self._send_chat(text.removeprefix("/chat").strip())
             return
         if (
             self.latest_state is not None
@@ -150,6 +154,13 @@ class MultiplayerGameScreen(Screen):
                 self.notify("Type /start to play again.", severity="warning")
             return
         await self._send_turn_action(text)
+
+    async def _send_chat(self, text: str) -> None:
+        message = text.strip()
+        if not message:
+            self.notify("Chat message cannot be empty.", severity="warning")
+            return
+        await self._send({'action': 'chat', 'message': message})
 
     @work(exclusive=True)
     async def run_network_client(self) -> None:
@@ -273,6 +284,8 @@ class MultiplayerGameScreen(Screen):
             self._log(f"[red]{message['message']}[/red]")
         elif message_type == 'info':
             self._log(f"[blue]{message['message']}[/blue]")
+        elif message_type == 'chat':
+            self._log_chat(str(message.get('player') or ''), str(message.get('message') or ''))
         elif message_type == 'event':
             self._render_event(message['event'])
 
@@ -286,7 +299,7 @@ class MultiplayerGameScreen(Screen):
         self.query_one("#current-card", Static).update(f"Room: {lobby['room']}")
         self.query_one("#hand-display", Static).update(
             f"[dim]Rules:[/dim] {rules.get('starting_cards', 7)} starting cards, "
-            f"stacking {'on' if rules.get('card_stacking', True) else 'off'}"
+            f"stacking {'[green]on[/green]' if rules.get('card_stacking', True) else '[red]off[/red]'}"
         )
         self.query_one("#card-input", Input).placeholder = "/start"
 
@@ -346,3 +359,6 @@ class MultiplayerGameScreen(Screen):
 
     def _log(self, message: str) -> None:
         self.query_one("#game-log", RichLog).write(message)
+
+    def _log_chat(self, player: str, message: str) -> None:
+        self._log(f"[cyan]{escape(player)}[/cyan]: {escape(message)}")
