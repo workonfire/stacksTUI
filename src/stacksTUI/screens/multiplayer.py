@@ -17,7 +17,7 @@ from stacksTUI._version import _LOGO
 from stackslib.enums import CardColor
 from stackslib.game import Card
 from stackslib.protocol import card_from_dict, card_to_dict
-from stacksTUI.screens.rendering import hand_text
+from stacksTUI.screens.rendering import card_text, hand_text
 
 
 def _server_label(uri: str) -> str:
@@ -298,6 +298,8 @@ class MultiplayerGameScreen(Screen):
             self._log(f"[blue]{message['message']}[/blue]")
         elif message_type == 'chat':
             self._log_chat(str(message.get('player') or ''), str(message.get('message') or ''))
+        elif message_type == 'play':
+            self._log_play(str(message.get('player') or ''), message['card'])
         elif message_type == 'event':
             self._render_event(message['event'])
 
@@ -351,7 +353,7 @@ class MultiplayerGameScreen(Screen):
     def _render_event(self, event: dict[str, Any]) -> None:
         if event['type'] == 'STACKING_ACTIVE':
             for card in event['payload'].get('stacked_cards', []):
-                self._log(f"[dim]{event['payload'].get('player')} stacked: {card_from_dict(card)}[/dim]")
+                self._log(f"[dim]Stacked: {card_from_dict(card)}[/dim]")
         elif event['type'] == 'COLOR_CHANGED':
             self._log(
                 f"{event['payload'].get('player')} changed color to "
@@ -374,3 +376,9 @@ class MultiplayerGameScreen(Screen):
 
     def _log_chat(self, player: str, message: str) -> None:
         self._log(f"[cyan]{escape(player)}[/cyan]: {escape(message)}")
+
+    def _log_play(self, player: str, card_data: dict[str, str | None]) -> None:
+        text = Text.from_markup(f"[blue]{escape(player)} played [/blue]")
+        text.append_text(card_text(card_from_dict(card_data)))
+        text.append(".")
+        self.query_one("#game-log", RichLog).write(text)
